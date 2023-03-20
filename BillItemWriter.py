@@ -2,6 +2,26 @@ import pandas as pd
 import argparse
 import os
 
+# Function to check if any of the required columns have an empty values. 
+def hasEmptyValues(df, required_columns=[]):
+
+    # Create a hashmamp to store row numbers of empty rows
+    missing_values = {}
+
+    # Generate a warning if the required_columns list is empty
+    if not required_columns:
+        print("\033[93mWarning: required_columns list is empty\033[0m")
+        return missing_values
+
+    # Check if any of the required columns have an empty values.
+    for column in required_columns:
+        if df[column].isnull().values.any():
+            # Get row numbers of empty rows
+            empty_rows = df[df[column].isnull()].index.tolist()
+            # Store the row numbers in the hashmap
+            empty_rows[column] = empty_rows
+    return missing_values
+
 def main():
     print("Bill Items import script")
 
@@ -46,6 +66,19 @@ def main():
 
     # Convert LOG_START_TIME to string
     df_data["LOG_START_TIME"] = df_data["LOG_START_TIME"].dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+    # List of culumns that must not be empty
+    required_columns = ["SERVICE_ID", "LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE"]
+
+    # Check if any of the required columns have an empty values.
+    empty_values = hasEmptyValues(df_data, required_columns):
+    
+    if empty_values:
+        # Print error message in red and exit
+        print("\033[91mEmpty values found in the following rows\033[0m")
+        print(empty_values)
+        return
+        
 
     rows_of_tuples = [tuple(x) for x in df_data.to_numpy()]
 
