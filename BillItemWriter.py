@@ -3,7 +3,7 @@ import argparse
 import os
 
 # Function to check if any of the required columns have an empty values. 
-def checkRequiredValues(df, required_columns=[]):
+def checkMissingValues(df, required_columns=[]):
 
     # Create a hashmamp to store row numbers of empty rows
     missing_values = {}
@@ -60,29 +60,35 @@ def main():
 
 
     # Read the Excel file
-    df = pd.read_excel(file_path, sheet_name=sheet_name, usecols="A:Q", parse_dates=['LOG_START_TIME'])
+    df = pd.read_excel(file_path, sheet_name=sheet_name, usecols="A:U", parse_dates=['LOG_START_TIME'])
 
      # List of culumns that must not be empty
-    required_columns = ["SERVICE_ID", "LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE"]
+    required_columns = ["SERVICE_ID", "LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE","CHECKED"]
 
      # Check if any of the required columns have an empty values.
-    empty_values = checkRequiredValues(df, required_columns)
+    missing_values = checkMissingValues(df, required_columns)
     
-    if empty_values:
+    if missing_values:
         # Print error message in red and exit
         print("\033[91mRequired values not found in the following rows\033[0m")
         # Print the row numbers for each column
-        for column, rows in empty_values.items():
+        for column, rows in missing_values.items():
             print(column, ": ", rows)
         return
 
     # Drop rows with all empty cells
     df_clean = df.dropna(how="all") 
 
-    # Extract the columns that we need
-    df_data = df_clean.loc[:,["SERVICE_ID","LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE","LOG_NOTES"]]
+    # Print the number of rows that will be processed in green
+    print("\033[92m{} rows will be processed\033[0m".format(len(df_clean)))
 
-   
+     # Make sure the CHECKED column values are equal to 1. If not, print an error message with row number and exit
+    if not (df_clean["CHECKED"] == 1).all():
+        print("\033[91mAll rows should be marked as checked. Please check the CHECKED column\033[0m")
+        return
+
+    # Extract the columns that we need
+    df_data = df_clean.loc[:,["SERVICE_ID","LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE","LOG_NOTES"]]   
 
     # Convert the SERVICE_ID column to int
     df_data["SERVICE_ID"] = df_data["SERVICE_ID"].astype(int)
@@ -93,8 +99,7 @@ def main():
     # Convert LOG_START_TIME to string
     df_data["LOG_START_TIME"] = df_data["LOG_START_TIME"].dt.strftime("%Y-%m-%dT%H:%M:%S")
 
-    
-        
+            
 
     rows_of_tuples = [tuple(x) for x in df_data.to_numpy()]
 
