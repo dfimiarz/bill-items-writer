@@ -3,7 +3,7 @@ import argparse
 import os
 
 # Function to check if any of the required columns have an empty values. 
-def hasEmptyValues(df, required_columns=[]):
+def checkRequiredValues(df, required_columns=[]):
 
     # Create a hashmamp to store row numbers of empty rows
     missing_values = {}
@@ -13,13 +13,23 @@ def hasEmptyValues(df, required_columns=[]):
         print("\033[93mWarning: required_columns list is empty\033[0m")
         return missing_values
 
-    # Check if any of the required columns have an empty values.
+    # Fine the rows that are empty for all columns
+    empty_rows = df[df.isnull().all(axis=1)].index.tolist()
+
+    # Loop through the required columns
     for column in required_columns:
-        if df[column].isnull().values.any():
-            # Get row numbers of empty rows
-            empty_rows = df[df[column].isnull()].index.tolist()
-            # Store the row numbers in the hashmap
-            empty_rows[column] = empty_rows
+        # Get the row numbers of empty rows for the current column
+        empty_rows_for_column = df[df[column].isnull()].index.tolist()
+        # Keep only rows that are not in the empty_rows list
+        empty_rows_for_column = list(set(empty_rows_for_column) - set(empty_rows))
+
+        # Add 2 to the row numbers to account for the header and the first row
+        empty_rows_for_column = [x + 2 for x in empty_rows_for_column]
+
+        # Add the column name and the row numbers to the hashmap if there are empty rows found. Sort the row numbers.
+        if empty_rows_for_column:
+            missing_values[column] = sorted(empty_rows_for_column)
+    
     return missing_values
 
 def main():
@@ -52,11 +62,27 @@ def main():
     # Read the Excel file
     df = pd.read_excel(file_path, sheet_name=sheet_name, usecols="A:Q", parse_dates=['LOG_START_TIME'])
 
+     # List of culumns that must not be empty
+    required_columns = ["SERVICE_ID", "LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE"]
+
+     # Check if any of the required columns have an empty values.
+    empty_values = checkRequiredValues(df, required_columns)
+    
+    if empty_values:
+        # Print error message in red and exit
+        print("\033[91mRequired values not found in the following rows\033[0m")
+        # Print the row numbers for each column
+        for column, rows in empty_values.items():
+            print(column, ": ", rows)
+        return
+
     # Drop rows with all empty cells
     df_clean = df.dropna(how="all") 
 
     # Extract the columns that we need
     df_data = df_clean.loc[:,["SERVICE_ID","LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE","LOG_NOTES"]]
+
+   
 
     # Convert the SERVICE_ID column to int
     df_data["SERVICE_ID"] = df_data["SERVICE_ID"].astype(int)
@@ -67,17 +93,7 @@ def main():
     # Convert LOG_START_TIME to string
     df_data["LOG_START_TIME"] = df_data["LOG_START_TIME"].dt.strftime("%Y-%m-%dT%H:%M:%S")
 
-    # List of culumns that must not be empty
-    required_columns = ["SERVICE_ID", "LOG_PI", "LOG_DETAILS", "LOG_START_TIME", "LOG_QUANTITY", "LOG_RATE"]
-
-    # Check if any of the required columns have an empty values.
-    empty_values = hasEmptyValues(df_data, required_columns):
     
-    if empty_values:
-        # Print error message in red and exit
-        print("\033[91mEmpty values found in the following rows\033[0m")
-        print(empty_values)
-        return
         
 
     rows_of_tuples = [tuple(x) for x in df_data.to_numpy()]
