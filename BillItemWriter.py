@@ -99,8 +99,6 @@ def main():
     # Convert LOG_START_TIME to string
     df_data["LOG_START_TIME"] = df_data["LOG_START_TIME"].dt.strftime("%Y-%m-%dT%H:%M:%S")
 
-            
-
     rows_of_tuples = [tuple(x) for x in df_data.to_numpy()]
 
     print(rows_of_tuples)
