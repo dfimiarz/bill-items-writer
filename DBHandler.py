@@ -1,37 +1,34 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, Text, Double, create_engine
+from sqlalchemy import create_engine
+from sqlalchemy import URL
 
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import MetaData, Table
 
-from sqlalchemy.orm import relationship, sessionmaker
+import configparser
 
+config = configparser.ConfigParser()
+config.read('settings.ini')
 
-Base = declarative_base()
+db_driver = config['database']['drivername']
+db_user = config['database']['username']
+db_password = config['database']['password']
+db_host = config['database']['host']
+db_port = config['database'].getint('port')
+db_name = config['database']['database']
 
-class Core_Invoice_Item_Status(Base):
-    __tablename__ = 'core_invoice_item_status'
+print(db_driver, db_user, db_password, db_host, db_port, db_name)
 
-    id = Column(Integer, primary_key=True)
-    label = Column(String(64), nullable=False)
+metadata_obj = MetaData()
 
-class Core_Invoice(Base):
-    number = Column(Integer, autoincrement="auto", primary_key=True)
-    issued = Column(Date, nullable=False)
-    due = Column(Date, nullable=False)
-    payer_id = Column(Integer, ForeignKey('core_payer.id'))
-    status = Column(String(20), nullable=False)
-    access_code = Column(String(16), nullable=False)
-    filename = Column(String(256), nullable=True)
-    Note = Column(Text, nullable=True)
+url_object = URL.create(
+    drivername=db_driver,
+    username=db_user,
+    password=db_password,
+    host=db_host,
+    port=db_port,
+    database=db_name
+)
 
-class Core_Invoice_Item(Base):
-    __tablename__ = 'core_invoice_item'
+engine = create_engine(url_object)
 
-    id = Column(Integer, primary_key=True)
-    invoice_id = Column(Integer, ForeignKey('core_invoice.id'))
-    service_id = Column(Integer, ForeignKey('core_service.id'))
-    quantity = Column(Double)
+table_core_invoice_items = Table('core_invoice_item', metadata_obj, autoload_with=engine)
 
-engine = create_engine('sqlite:///test.db', echo=True)
-Base.metadata.create_all(engine)
-
-session = sessionmaker(bind=engine)()

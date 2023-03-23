@@ -2,6 +2,8 @@ import pandas as pd
 import argparse
 import os
 
+from DBHandler import table_core_invoice_items
+
 # Function to check if any of the required columns have an empty values. 
 def checkMissingValues(df, required_columns=[]):
 
@@ -102,6 +104,8 @@ def main():
     rows_of_tuples = [tuple(x) for x in df_data.to_numpy()]
 
     print(rows_of_tuples)
+
+    print(table_core_invoice_items.c.keys())
 
 if __name__ == "__main__":
     main()
